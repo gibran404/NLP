@@ -1,24 +1,38 @@
+
+
+
+import requests
 import fitz  # PyMuPDF
 from docx import Document
 from docx.shared import RGBColor
 import spacy
 from spacy import displacy
 from langdetect import detect
-from googletrans import Translator
 
 # Load SpaCy models
 nlp_en = spacy.load("en_core_web_sm")
 nlp_ur = spacy.load("xx_ent_wiki_sm")  # Multilingual model, as there's no dedicated Urdu model
-translator = Translator()
+
+LIBRETRANSLATE_URL = "https://libretranslate.com/translate"
+
+def translate_text(text, source_language, target_language):
+    response = requests.post(LIBRETRANSLATE_URL, data={
+        "q": text,
+        "source": source_language,
+        "target": target_language,
+        "format": "text"
+    })
+    result = response.json()
+    return result["translatedText"]
 
 def detect_language(text):
     return detect(text)
 
 def translate_to_english(text):
-    return translator.translate(text, src='ur', dest='en').text
+    return translate_text(text, 'ur', 'en')
 
 def translate_to_urdu(text):
-    return translator.translate(text, src='en', dest='ur').text
+    return translate_text(text, 'en', 'ur')
 
 def apply_ner(text, language):
     if language == 'en':
@@ -102,3 +116,5 @@ def extract_ne(pdf_path, output_path):
 
     doc.save(output_path)
     print("Named entities extracted and saved to", output_path)
+
+extract_ne('urdu.pdf', 'urduoutput.docx')
