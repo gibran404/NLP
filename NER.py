@@ -15,18 +15,10 @@ def get_color(label):
     }
     return colors.get(label, RGBColor(0, 0, 0))  # Default to black if label not found
 
+word_label_dict = { 'word': ['for', 'and', 'Pakistan'], 'label': ['A', 'B', 'C'] }
 
 def extract_ne():
     pdf_path = 'input_text.pdf'
-
-    # Path to the CSV file containing word labels
-    csv_path = "C:/Users/gibra/Desktop/AAA/UNI/NLP/project/NER/labels.csv"
-
-    # Read the CSV file
-    df = pd.read_csv(csv_path)
-
-    # Create a dictionary from the dataframe
-    word_label_dict = dict(zip(df['word'], df['label']))
 
     # Open the PDF file
     pdf_document = fitz.open(pdf_path)
