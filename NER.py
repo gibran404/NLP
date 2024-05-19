@@ -1,25 +1,30 @@
 import fitz  # PyMuPDF
-import pandas as pd
 from docx import Document
 from docx.shared import RGBColor
 
-print("Named entity extraction module loaded!")
+# Define the word-label dictionary
+word_label_dict = {
+    'Independence': 'A',
+    'India': 'A',
+    'Pakistan': 'A',
+    'Mahatma': 'B',
+    'Gandhi': 'B',
+    'Quiad': 'B',
+    'Delhi': 'C',
+    'Lahore': 'C',
+    'Karachi': 'C'
+}
 
-# Function to map labels to colors
+# Define the color mapping function
 def get_color(label):
-    colors = {
+    color_map = {
         'A': RGBColor(255, 0, 0),    # Red
         'B': RGBColor(0, 255, 0),    # Green
-        'C': RGBColor(0, 0, 255),    # Blue
-        # Add more labels and corresponding colors as needed
+        'C': RGBColor(0, 0, 255)     # Blue
     }
-    return colors.get(label, RGBColor(0, 0, 0))  # Default to black if label not found
+    return color_map.get(label, RGBColor(0, 0, 0))  # Default to black if label not found
 
-word_label_dict = { 'word': ['for', 'and', 'Pakistan'], 'label': ['A', 'B', 'C'] }
-
-def extract_ne():
-    pdf_path = 'input_text.pdf'
-
+def extract_ne(pdf_path, output_path):
     # Open the PDF file
     pdf_document = fitz.open(pdf_path)
 
@@ -50,8 +55,5 @@ def extract_ne():
                     paragraph.add_run(word + ' ')
 
     # Save the document
-    doc.save('colored_text.docx')
-    print("Named entities extracted and saved to colored_text.docx!")
-    
-    
-extract_ne()
+    doc.save(output_path)
+    print("Named entities extracted and saved to", output_path)
