@@ -1,59 +1,107 @@
 import fitz  # PyMuPDF
 from docx import Document
 from docx.shared import RGBColor
+import spacy
+from spacy import displacy
+from langdetect import detect
+from googletrans import Translator
 
-# Define the word-label dictionary
-word_label_dict = {
-    'Independence': 'A',
-    'India': 'A',
-    'Pakistan': 'A',
-    'Mahatma': 'B',
-    'Gandhi': 'B',
-    'Quiad': 'B',
-    'Delhi': 'C',
-    'Lahore': 'C',
-    'Karachi': 'C'
-}
+# Load SpaCy models
+nlp_en = spacy.load("en_core_web_sm")
+nlp_ur = spacy.load("xx_ent_wiki_sm")  # Multilingual model, as there's no dedicated Urdu model
+translator = Translator()
 
-# Define the color mapping function
+def detect_language(text):
+    return detect(text)
+
+def translate_to_english(text):
+    return translator.translate(text, src='ur', dest='en').text
+
+def translate_to_urdu(text):
+    return translator.translate(text, src='en', dest='ur').text
+
+def apply_ner(text, language):
+    if language == 'en':
+        doc = nlp_en(text)
+    else:
+        doc = nlp_ur(text)
+    entities = [{'text': ent.text, 'label': ent.label_} for ent in doc.ents]
+    return entities
+
+def get_entities(text):
+    language = detect_language(text)
+    original_text = text
+
+    if language == 'ur':
+        text = translate_to_english(text)
+
+    entities = apply_ner(text, 'en')
+
+    if language == 'ur':
+        translated_entities = []
+        for entity in entities:
+            translated_text = translate_to_urdu(entity['text'])
+            translated_entities.append({'text': translated_text, 'label': entity['label']})
+        entities = translated_entities
+
+    return entities
+
 def get_color(label):
-    color_map = {
-        'A': RGBColor(255, 0, 0),    # Red
-        'B': RGBColor(0, 255, 0),    # Green
-        'C': RGBColor(0, 0, 255)     # Blue
+    colors = {
+        'PERSON': RGBColor(255, 0, 0),
+        'NORP': RGBColor(0, 255, 0),
+        'FAC': RGBColor(0, 0, 255),
+        'ORG': RGBColor(255, 255, 0),
+        'GPE': RGBColor(255, 0, 255),
+        'LOC': RGBColor(0, 255, 255),
+        'PRODUCT': RGBColor(255, 192, 203),
+        'EVENT': RGBColor(139, 69, 19),
+        'WORK_OF_ART': RGBColor(169, 169, 169),
+        'LAW': RGBColor(0, 0, 0),
+        'LANGUAGE': RGBColor(255, 255, 255),
+        'DATE': RGBColor(0, 255, 255),
+        'TIME': RGBColor(255, 0, 255),
+        'PERCENT': RGBColor(211, 211, 211),
+        'MONEY': RGBColor(105, 105, 105),
+        'QUANTITY': RGBColor(173, 216, 230),
+        'ORDINAL': RGBColor(144, 238, 144),
+        'CARDINAL': RGBColor(255, 255, 224)
     }
-    return color_map.get(label, RGBColor(0, 0, 0))  # Default to black if label not found
+    return colors.get(label, RGBColor(0, 0, 0))
 
 def extract_ne(pdf_path, output_path):
-    # Open the PDF file
     pdf_document = fitz.open(pdf_path)
-
-    # Create a new Word document
     doc = Document()
 
-    # Iterate over each page in the PDF
     for page_num in range(len(pdf_document)):
         page = pdf_document.load_page(page_num)
         text = page.get_text()
 
-        # Split text into paragraphs
-        paragraphs = text.split('\n')
-
-        # Add paragraphs to the Word document with respective colors
-        for paragraph_text in paragraphs:
-            paragraph = doc.add_paragraph()
-
-            # Split paragraph into words
-            words = paragraph_text.split()
-
-            # Add words to the paragraph with respective colors
-            for word in words:
-                if word in word_label_dict:
-                    run = paragraph.add_run(word + ' ')
-                    run.font.color.rgb = get_color(word_label_dict[word])
+        entities_list = get_entities(text)
+        current_word = ''
+        
+        paragraph = doc.add_paragraph()
+        
+        for char in text:
+            if char.isalpha():
+                current_word += char
+            else:
+                if current_word:
+                    matched_entity = next((entity for entity in entities_list if entity['text'] == current_word), None)
+                    if matched_entity:
+                        run = paragraph.add_run(current_word)
+                        run.font.color.rgb = get_color(matched_entity['label'])
+                    else:
+                        paragraph.add_run(current_word)
+                    current_word = ''
+                if char.isspace():
+                    paragraph.add_run(char)
                 else:
-                    paragraph.add_run(word + ' ')
+                    run = paragraph.add_run(char)
+                    run.font.color.rgb = RGBColor(0, 0, 0)
 
-    # Save the document
     doc.save(output_path)
     print("Named entities extracted and saved to", output_path)
+
+
+extract_ne('input_text.pdf', 'colored_text.docx')

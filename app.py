@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, send_file
 import os
-from NER import extract_ne  # Import the function from NER.py
+from NER import extract_ne  # Import the updated function from NER.py
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
