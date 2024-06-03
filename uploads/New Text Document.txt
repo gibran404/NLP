@@ -1,0 +1,13 @@
+nlp things to improve
+option for pdf or text box input
+
+with the highlighted colors, write the label in brackets. e.g Khan (person)
+
+
+things to add to front end:
+ > scope of project
+ > limitations
+ > extra info
+ > so on
+
+
